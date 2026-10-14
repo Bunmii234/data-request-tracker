@@ -41,7 +41,7 @@ for i in range(3):
 # NOTE: Blue bar = average days. The black line on each bar = the target.
 #       Inside each bar I wrote the average and the % that missed the target.
 
-ax.set_title("Average turnaround vs. target - priority works, but about 1 in 3 urgent requests still ran late",
+ax.set_title("Average days vs. target - High priority is fastest, but misses its target most often",
              loc="left", fontsize=11, color=DARK)
 ax.set_ylabel("Days", color=GRAY)
 ax.spines[["top", "right"]].set_visible(False)
@@ -72,4 +72,27 @@ plt.savefig("images/requests_by_team.png", dpi=150)
 plt.close()
 # NOTE: Sideways bars, one per team, with the count written at the end of each bar.
 
-print("Saved images/turnaround_vs_target.png and images/requests_by_team.png")
+# ---------- Chart 3: on-time % by analyst ----------
+TARGETS = {"High": 1, "Medium": 3, "Low": 5}
+done = done.copy()
+done["on_time"] = done["turnaround_days"] <= done["priority"].map(TARGETS)
+on_time = (done.groupby("assigned_to")["on_time"].mean() * 100).sort_values(ascending=False)
+# NOTE: Gave each finished request True/False for "finished within its target", then took the average per analyst.
+#       The average of True/False = the share that's True, so x100 = on-time %. Sorted best first (best ends up at the bottom).
+
+fig, ax = plt.subplots(figsize=(8, 2.8))
+ax.barh(on_time.index, on_time.values, color=BLUE, height=0.55)
+for i, value in enumerate(on_time.values):
+    ax.text(value + 1, i, f"{value:.0f}%", va="center", fontsize=9, color=GRAY)
+ax.set_title("On time by analyst - one analyst hits target less than half the time",
+             loc="left", fontsize=11, color=DARK)
+ax.set_xlabel("Finished within target (%)", color=GRAY)
+ax.set_xlim(0, 100)
+ax.spines[["top", "right"]].set_visible(False)
+ax.tick_params(colors=GRAY)
+plt.tight_layout()
+plt.savefig("images/on_time_by_analyst.png", dpi=150)
+plt.close()
+# NOTE: Sideways bars from 0 to 100%, with the % written at the end of each bar.
+
+print("Saved 3 charts in the images folder")

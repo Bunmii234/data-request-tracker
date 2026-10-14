@@ -1,4 +1,4 @@
--- KPI QUERIES - the questions people ask about the request log.
+-- KPI QUERIES - the 8 questions people ask about the request log.
 -- Pattern for almost all of them: filter (WHERE) -> group (GROUP BY) -> count or average -> sort (ORDER BY)
 
 
@@ -62,6 +62,7 @@ ORDER BY month;
 -- Part 2 = RANK() numbers each team's types from most to least (1 = most).
 --   PARTITION BY team = restart the numbering for every team.
 -- Then WHERE rnk = 1 keeps only the top type for each team.
+-- If 2 types tie for the top spot, RANK gives them both a 1 - so both show up (that's why a team can appear twice).
 WITH counts AS (
     SELECT team, request_type, COUNT(*) AS n
     FROM requests
@@ -76,3 +77,49 @@ SELECT team, request_type, n
 FROM ranked
 WHERE rnk = 1
 ORDER BY n DESC;
+
+
+-- Q7 - Which analyst is on time most often? (and who might be overloaded)
+-- WITH graded = first give every finished request a late flag (1 = late, 0 = on time), using the same targets as Q3.
+-- Then GROUP BY analyst: SUM(late) = how many were late, and on_time_pct = the share that weren't.
+-- 100.0 (not 100) makes SQL do decimal math instead of whole numbers.
+WITH graded AS (
+    SELECT assigned_to,
+           CASE
+             WHEN priority = 'High'   AND turnaround_hours > 24  THEN 1
+             WHEN priority = 'Medium' AND turnaround_hours > 72  THEN 1
+             WHEN priority = 'Low'    AND turnaround_hours > 120 THEN 1
+             ELSE 0
+           END AS late
+    FROM requests
+    WHERE status = 'Completed'
+)
+SELECT assigned_to,
+       COUNT(*) AS completed,
+       SUM(late) AS missed_target,
+       ROUND(100.0 * (COUNT(*) - SUM(late)) / COUNT(*), 1) AS on_time_pct
+FROM graded
+GROUP BY assigned_to
+ORDER BY on_time_pct;
+
+
+-- Q8 - Which team's requests are on time most often?
+-- Same idea as Q7, grouped by team instead of analyst.
+WITH graded AS (
+    SELECT team,
+           CASE
+             WHEN priority = 'High'   AND turnaround_hours > 24  THEN 1
+             WHEN priority = 'Medium' AND turnaround_hours > 72  THEN 1
+             WHEN priority = 'Low'    AND turnaround_hours > 120 THEN 1
+             ELSE 0
+           END AS late
+    FROM requests
+    WHERE status = 'Completed'
+)
+SELECT team,
+       COUNT(*) AS completed,
+       SUM(late) AS missed_target,
+       ROUND(100.0 * (COUNT(*) - SUM(late)) / COUNT(*), 1) AS on_time_pct
+FROM graded
+GROUP BY team
+ORDER BY on_time_pct;

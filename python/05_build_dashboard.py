@@ -32,8 +32,10 @@ kpis = {
     "missed_pct": round(100 * missed / len(done)),
     "open": len(still_open),
     "open_unassigned": int((still_open["assigned_to"] == "Unassigned").sum()),
+    "never_started": int((still_open["status"] == "Open").sum()),
 }
 # NOTE: The loop counts late requests for each priority and adds them up.
+#       never_started = requests with status "Open" - nobody has touched them yet.
 #       duplicates = 5 is what Step 1 removed (the raw file had 305 rows, the clean one has 300).
 
 # ---------- by priority ----------
@@ -60,8 +62,24 @@ for team, count in df["team"].value_counts().items():
 top_types = []
 for team in df["team"].value_counts().index:
     types = df[df["team"] == team]["request_type"].value_counts()
-    top_types.append({"team": team, "type": types.index[0], "n": int(types.iloc[0])})
+    top = types[types == types.max()]
+    top_types.append({"team": team, "type": " / ".join(top.index), "n": int(types.max())})
 # NOTE: For each team, counted its request types and kept the top one (same answer as SQL Q6).
+#       If 2 types tie, both are kept and joined with " / " - just like RANK does in SQL.
+
+# ---------- on time by analyst and by team ----------
+done = done.copy()
+done["on_time"] = done["turnaround_days"] <= done["priority"].map(TARGETS)
+on_time_analyst = []
+for analyst, pct in (done.groupby("assigned_to")["on_time"].mean() * 100).sort_values().items():
+    count = (done["assigned_to"] == analyst).sum()
+    on_time_analyst.append({"name": analyst, "pct": round(pct, 1), "completed": int(count)})
+on_time_team = []
+for team, pct in (done.groupby("team")["on_time"].mean() * 100).sort_values().items():
+    count = (done["team"] == team).sum()
+    on_time_team.append({"name": team, "pct": round(pct, 1), "completed": int(count)})
+# NOTE: True/False for "finished within its target", then the average per analyst and per team x100 = on-time %.
+#       Sorted worst first, so whoever needs help is at the top.
 
 # ---------- by month ----------
 by_month = []
@@ -72,10 +90,10 @@ for month, count in month_counts.items():
 # NOTE: Counted requests per month. The label turns "2026-06" into "Jun 2026" so it reads nicely.
 
 # ---------- open work ----------
-as_of = df["submitted_at"].max()
+as_of = pd.Timestamp("2026-09-29 08:00")
 still_open = still_open.copy()
 still_open["waiting"] = (as_of - still_open["submitted_at"]).dt.days
-# NOTE: as_of = the last day in the data. waiting = how many days each open request has been sitting there.
+# NOTE: as_of = the day the export was pulled (same AS_OF date as Step 0). waiting = how many days each open request has been sitting there.
 
 by_owner = []
 for owner, count in still_open["assigned_to"].value_counts().items():
@@ -100,6 +118,7 @@ for _, row in still_open.sort_values("waiting", ascending=False).iterrows():
 
 # ---------- put it in the page ----------
 data = {"kpis": kpis, "by_priority": by_priority, "by_team": by_team, "top_types": top_types,
+        "on_time_analyst": on_time_analyst, "on_time_team": on_time_team,
         "by_month": by_month, "by_owner": by_owner, "open": open_list,
         "as_of": as_of.strftime("%b %d, %Y")}
 template = open("dashboard/template.html").read()

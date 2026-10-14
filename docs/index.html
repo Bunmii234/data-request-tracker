@@ -37,6 +37,7 @@
   .kpi .value { font-size: 28px; font-weight: 650; margin: 2px 0; font-variant-numeric: tabular-nums; }
   .kpi .sub { font-size: 13px; color: var(--muted); }
   .grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; }
+  .grid2 > * { min-width: 0; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
   .card h2 { font-size: 17px; margin: 0 0 2px; }
   .card .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
@@ -104,6 +105,8 @@
     .glossary { grid-template-columns: 1fr; }
   }
   @media (max-width: 480px) {
+    .cols, .colnames { gap: 3px; }
+    .colnames div { font-size: 10px; min-width: 0; }
     header h1 { font-size: 23px; }
     .kpi .value { font-size: 23px; }
     .bars .row { grid-template-columns: 110px 1fr 70px; gap: 6px; }
@@ -165,17 +168,27 @@
   </div>
 
   <div class="grid2">
-    <div class="card">
-      <h2>Requests per month</h2>
-      <p class="hint">New requests coming in each month.</p>
-      <div class="cols" id="monthCols"></div>
-      <div class="colnames" id="monthNames"></div>
+    <div class="card" id="onTimeCard">
+      <h2>Who's falling behind?</h2>
+      <p class="hint">Share of finished requests done within their target, by analyst and by team. Worst first.</p>
+      <div class="bars static" id="analystOnTime"></div>
+      <div class="callout" id="onTimeNote"></div>
+      <h2 style="margin-top:18px">On time by team</h2>
+      <div class="bars static" id="teamOnTime"></div>
     </div>
-    <div class="card">
-      <h2>Who has open work right now <span class="clickme">click an analyst</span></h2>
-      <p class="hint">Requests not finished yet, by analyst. Click one to filter the list below.</p>
-      <div class="bars" id="ownerBars"></div>
-      <div class="callout" id="ownerNote"></div>
+    <div>
+      <div class="card">
+        <h2>Who has open work right now <span class="clickme">click an analyst</span></h2>
+        <p class="hint">Requests not finished yet, by analyst. Click one to filter the list below.</p>
+        <div class="bars" id="ownerBars"></div>
+        <div class="callout" id="ownerNote"></div>
+      </div>
+      <div class="card">
+        <h2>Requests per month</h2>
+        <p class="hint">New requests coming in each month.</p>
+        <div class="cols" id="monthCols"></div>
+        <div class="colnames" id="monthNames"></div>
+      </div>
     </div>
   </div>
 
@@ -205,7 +218,7 @@
   </div>
 
   <footer>
-    How it was built: Python (pandas) cleans the request log &rarr; SQL answers 6 KPI questions &rarr; Python builds the Excel summary and this page.
+    How it was built: Python (pandas) cleans the request log &rarr; SQL answers 8 KPI questions &rarr; Python builds the Excel summary and this page.
     Full code and notes: <a href="https://github.com/Bunmii234/data-request-tracker">github.com/Bunmii234/data-request-tracker</a>
     &middot; Excel summary: <a href="https://github.com/Bunmii234/data-request-tracker/raw/main/output/request_summary.xlsx">download</a>
   </footer>
@@ -213,7 +226,7 @@
 <div class="tip" id="tip" role="tooltip"></div>
 
 <script>
-const DATA = {"kpis": {"total": 300, "duplicates": 5, "avg_days": 2.4, "median_days": 2.1, "completed": 228, "missed": 63, "missed_pct": 28, "open": 72, "open_unassigned": 2}, "by_priority": [{"priority": "High", "target": 1, "avg_days": 0.68, "completed": 42, "missed": 13}, {"priority": "Medium", "target": 3, "avg_days": 2.19, "completed": 109, "missed": 27}, {"priority": "Low", "target": 5, "avg_days": 3.57, "completed": 77, "missed": 23}], "by_team": [{"team": "Operations", "requests": 86, "open": 22}, {"team": "Finance", "requests": 84, "open": 20}, {"team": "Sales", "requests": 69, "open": 10}, {"team": "Compliance", "requests": 35, "open": 10}, {"team": "Business Development", "requests": 26, "open": 10}], "top_types": [{"team": "Operations", "type": "Data pull", "n": 25}, {"team": "Finance", "type": "Ad hoc report", "n": 21}, {"team": "Sales", "type": "Data correction", "n": 19}, {"team": "Compliance", "type": "Recurring report", "n": 11}, {"team": "Business Development", "type": "Ad hoc report", "n": 8}], "by_month": [{"label": "Jun 2026", "requests": 69}, {"label": "Jul 2026", "requests": 71}, {"label": "Aug 2026", "requests": 70}, {"label": "Sep 2026", "requests": 90}], "by_owner": [{"owner": "Analyst C", "open": 26, "oldest": 107}, {"owner": "Analyst A", "open": 25, "oldest": 111}, {"owner": "Analyst B", "open": 19, "oldest": 104}, {"owner": "Unassigned", "open": 2, "oldest": 69}], "open": [{"id": "REQ-1296", "team": "Compliance", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-06-07", "waiting": 111, "target": 3}, {"id": "REQ-1076", "team": "Operations", "type": "Data correction", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-06-11", "waiting": 107, "target": 3}, {"id": "REQ-1115", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-06-13", "waiting": 106, "target": 3}, {"id": "REQ-1193", "team": "Business Development", "type": "Recurring report", "priority": "Medium", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-06-14", "waiting": 104, "target": 3}, {"id": "REQ-1242", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-06-14", "waiting": 104, "target": 3}, {"id": "REQ-1224", "team": "Finance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-06-15", "waiting": 104, "target": 3}, {"id": "REQ-1177", "team": "Business Development", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-06-16", "waiting": 102, "target": 3}, {"id": "REQ-1164", "team": "Sales", "type": "Recurring report", "priority": "Low", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-06-16", "waiting": 102, "target": 5}, {"id": "REQ-1214", "team": "Operations", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-06-27", "waiting": 91, "target": 3}, {"id": "REQ-1268", "team": "Business Development", "type": "Recurring report", "priority": "Low", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-06-28", "waiting": 90, "target": 5}, {"id": "REQ-1023", "team": "Operations", "type": "Recurring report", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-06-29", "waiting": 90, "target": 3}, {"id": "REQ-1033", "team": "Finance", "type": "Data correction", "priority": "Medium", "owner": "Analyst B", "status": "Open", "submitted": "2026-06-29", "waiting": 89, "target": 3}, {"id": "REQ-1103", "team": "Operations", "type": "Data pull", "priority": "High", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-07-04", "waiting": 85, "target": 1}, {"id": "REQ-1114", "team": "Finance", "type": "Recurring report", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-07-05", "waiting": 84, "target": 3}, {"id": "REQ-1139", "team": "Sales", "type": "Data correction", "priority": "Low", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-07-10", "waiting": 79, "target": 5}, {"id": "REQ-1007", "team": "Business Development", "type": "Data correction", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-07-11", "waiting": 78, "target": 3}, {"id": "REQ-1217", "team": "Compliance", "type": "Recurring report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-07-11", "waiting": 77, "target": 3}, {"id": "REQ-1145", "team": "Finance", "type": "Data pull", "priority": "High", "owner": "Analyst B", "status": "Open", "submitted": "2026-07-14", "waiting": 75, "target": 1}, {"id": "REQ-1143", "team": "Finance", "type": "Ad hoc report", "priority": "Low", "owner": "Analyst B", "status": "Open", "submitted": "2026-07-14", "waiting": 74, "target": 5}, {"id": "REQ-1018", "team": "Compliance", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-07-16", "waiting": 73, "target": 3}, {"id": "REQ-1047", "team": "Operations", "type": "Data pull", "priority": "Low", "owner": "Analyst C", "status": "Open", "submitted": "2026-07-18", "waiting": 71, "target": 5}, {"id": "REQ-1207", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Unassigned", "status": "In Progress", "submitted": "2026-07-19", "waiting": 69, "target": 3}, {"id": "REQ-1011", "team": "Finance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-07-25", "waiting": 64, "target": 3}, {"id": "REQ-1265", "team": "Business Development", "type": "Data pull", "priority": "Low", "owner": "Analyst B", "status": "Open", "submitted": "2026-07-24", "waiting": 64, "target": 5}, {"id": "REQ-1258", "team": "Compliance", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-07-26", "waiting": 63, "target": 3}, {"id": "REQ-1240", "team": "Compliance", "type": "Data correction", "priority": "Medium", "owner": "Analyst B", "status": "Open", "submitted": "2026-07-29", "waiting": 60, "target": 3}, {"id": "REQ-1006", "team": "Sales", "type": "Ad hoc report", "priority": "High", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-08-02", "waiting": 56, "target": 1}, {"id": "REQ-1211", "team": "Sales", "type": "Data pull", "priority": "Low", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-08-04", "waiting": 53, "target": 5}, {"id": "REQ-1129", "team": "Operations", "type": "Recurring report", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-05", "waiting": 52, "target": 3}, {"id": "REQ-1297", "team": "Sales", "type": "Dashboard change", "priority": "Low", "owner": "Analyst B", "status": "Open", "submitted": "2026-08-08", "waiting": 50, "target": 5}, {"id": "REQ-1060", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-08-13", "waiting": 44, "target": 3}, {"id": "REQ-1059", "team": "Operations", "type": "Recurring report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-08-14", "waiting": 43, "target": 3}, {"id": "REQ-1162", "team": "Finance", "type": "Dashboard change", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-16", "waiting": 42, "target": 5}, {"id": "REQ-1031", "team": "Operations", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-16", "waiting": 41, "target": 3}, {"id": "REQ-1222", "team": "Compliance", "type": "Dashboard change", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-17", "waiting": 41, "target": 5}, {"id": "REQ-1005", "team": "Finance", "type": "Data correction", "priority": "High", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-08-18", "waiting": 39, "target": 1}, {"id": "REQ-1092", "team": "Sales", "type": "Data correction", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-08-18", "waiting": 39, "target": 1}, {"id": "REQ-1293", "team": "Operations", "type": "Dashboard change", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-08-20", "waiting": 37, "target": 1}, {"id": "REQ-1279", "team": "Business Development", "type": "Data pull", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-21", "waiting": 37, "target": 3}, {"id": "REQ-1153", "team": "Compliance", "type": "Data pull", "priority": "Low", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-08-22", "waiting": 36, "target": 5}, {"id": "REQ-1079", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-08-23", "waiting": 35, "target": 3}, {"id": "REQ-1277", "team": "Operations", "type": "Recurring report", "priority": "Medium", "owner": "Analyst B", "status": "Open", "submitted": "2026-08-28", "waiting": 30, "target": 3}, {"id": "REQ-1269", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-28", "waiting": 30, "target": 3}, {"id": "REQ-1249", "team": "Finance", "type": "Recurring report", "priority": "High", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-08-28", "waiting": 29, "target": 1}, {"id": "REQ-1197", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-08-30", "waiting": 27, "target": 3}, {"id": "REQ-1152", "team": "Business Development", "type": "Data pull", "priority": "Medium", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-09-01", "waiting": 26, "target": 3}, {"id": "REQ-1286", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-02", "waiting": 25, "target": 3}, {"id": "REQ-1132", "team": "Sales", "type": "Data correction", "priority": "Medium", "owner": "Analyst B", "status": "Open", "submitted": "2026-09-03", "waiting": 24, "target": 3}, {"id": "REQ-1254", "team": "Operations", "type": "Ad hoc report", "priority": "High", "owner": "Analyst B", "status": "Open", "submitted": "2026-09-03", "waiting": 24, "target": 1}, {"id": "REQ-1227", "team": "Compliance", "type": "Recurring report", "priority": "Medium", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-09-02", "waiting": 24, "target": 3}, {"id": "REQ-1032", "team": "Operations", "type": "Recurring report", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-03", "waiting": 24, "target": 5}, {"id": "REQ-1063", "team": "Business Development", "type": "Data pull", "priority": "Medium", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-09-02", "waiting": 24, "target": 3}, {"id": "REQ-1232", "team": "Operations", "type": "Data correction", "priority": "High", "owner": "Analyst B", "status": "Open", "submitted": "2026-09-03", "waiting": 23, "target": 1}, {"id": "REQ-1077", "team": "Finance", "type": "Ad hoc report", "priority": "Low", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-09-07", "waiting": 19, "target": 5}, {"id": "REQ-1071", "team": "Finance", "type": "Data correction", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-10", "waiting": 16, "target": 3}, {"id": "REQ-1190", "team": "Operations", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-09-11", "waiting": 15, "target": 3}, {"id": "REQ-1174", "team": "Finance", "type": "Ad hoc report", "priority": "Low", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-12", "waiting": 14, "target": 5}, {"id": "REQ-1250", "team": "Operations", "type": "Data correction", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-13", "waiting": 13, "target": 3}, {"id": "REQ-1089", "team": "Operations", "type": "Data pull", "priority": "Low", "owner": "Unassigned", "status": "In Progress", "submitted": "2026-09-16", "waiting": 11, "target": 5}, {"id": "REQ-1107", "team": "Sales", "type": "Dashboard change", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-16", "waiting": 10, "target": 1}, {"id": "REQ-1149", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-17", "waiting": 9, "target": 3}, {"id": "REQ-1000", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-09-18", "waiting": 9, "target": 3}, {"id": "REQ-1163", "team": "Finance", "type": "Data correction", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-19", "waiting": 8, "target": 3}, {"id": "REQ-1238", "team": "Operations", "type": "Data pull", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-19", "waiting": 7, "target": 5}, {"id": "REQ-1210", "team": "Sales", "type": "Data correction", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-21", "waiting": 6, "target": 1}, {"id": "REQ-1294", "team": "Compliance", "type": "Data correction", "priority": "Medium", "owner": "Analyst A", "status": "In Progress", "submitted": "2026-09-20", "waiting": 6, "target": 3}, {"id": "REQ-1183", "team": "Business Development", "type": "Data pull", "priority": "High", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-09-21", "waiting": 5, "target": 1}, {"id": "REQ-1147", "team": "Finance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-21", "waiting": 5, "target": 3}, {"id": "REQ-1160", "team": "Compliance", "type": "Recurring report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-23", "waiting": 3, "target": 3}, {"id": "REQ-1118", "team": "Business Development", "type": "Recurring report", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-24", "waiting": 3, "target": 3}, {"id": "REQ-1015", "team": "Finance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-25", "waiting": 2, "target": 3}, {"id": "REQ-1280", "team": "Sales", "type": "Recurring report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-26", "waiting": 0, "target": 3}], "as_of": "Sep 27, 2026"};
+const DATA = {"kpis": {"total": 300, "duplicates": 5, "avg_days": 2.4, "median_days": 2.0, "completed": 279, "missed": 81, "missed_pct": 29, "open": 21, "open_unassigned": 4, "never_started": 16}, "by_priority": [{"priority": "High", "target": 1, "avg_days": 0.86, "completed": 55, "missed": 20}, {"priority": "Medium", "target": 3, "avg_days": 2.26, "completed": 139, "missed": 42}, {"priority": "Low", "target": 5, "avg_days": 3.5, "completed": 85, "missed": 19}], "by_team": [{"team": "Operations", "requests": 87, "open": 6}, {"team": "Finance", "requests": 82, "open": 5}, {"team": "Sales", "requests": 71, "open": 5}, {"team": "Compliance", "requests": 33, "open": 4}, {"team": "Business Development", "requests": 27, "open": 1}], "top_types": [{"team": "Operations", "type": "Data pull", "n": 24}, {"team": "Finance", "type": "Ad hoc report / Data pull", "n": 19}, {"team": "Sales", "type": "Data correction", "n": 20}, {"team": "Compliance", "type": "Recurring report", "n": 9}, {"team": "Business Development", "type": "Ad hoc report / Data pull", "n": 7}], "on_time_analyst": [{"name": "Analyst B", "pct": 46.8, "completed": 77}, {"name": "Analyst A", "pct": 78.7, "completed": 94}, {"name": "Analyst C", "pct": 81.5, "completed": 108}], "on_time_team": [{"name": "Business Development", "pct": 57.7, "completed": 26}, {"name": "Finance", "pct": 66.2, "completed": 77}, {"name": "Operations", "pct": 67.9, "completed": 81}, {"name": "Compliance", "pct": 72.4, "completed": 29}, {"name": "Sales", "pct": 84.8, "completed": 66}], "by_month": [{"label": "Jun 2026", "requests": 74}, {"label": "Jul 2026", "requests": 73}, {"label": "Aug 2026", "requests": 68}, {"label": "Sep 2026", "requests": 85}], "by_owner": [{"owner": "Analyst C", "open": 9, "oldest": 112}, {"owner": "Analyst A", "open": 4, "oldest": 113}, {"owner": "Analyst B", "open": 4, "oldest": 52}, {"owner": "Unassigned", "open": 4, "oldest": 96}], "open": [{"id": "REQ-1296", "team": "Compliance", "type": "Dashboard change", "priority": "Medium", "owner": "Analyst A", "status": "Open", "submitted": "2026-06-07", "waiting": 113, "target": 3}, {"id": "REQ-1237", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-06-08", "waiting": 112, "target": 3}, {"id": "REQ-1076", "team": "Operations", "type": "Data correction", "priority": "Medium", "owner": "Analyst C", "status": "Open", "submitted": "2026-06-11", "waiting": 109, "target": 3}, {"id": "REQ-1226", "team": "Sales", "type": "Data correction", "priority": "Medium", "owner": "Unassigned", "status": "Open", "submitted": "2026-06-25", "waiting": 96, "target": 3}, {"id": "REQ-1049", "team": "Finance", "type": "Data pull", "priority": "Medium", "owner": "Unassigned", "status": "Open", "submitted": "2026-06-26", "waiting": 94, "target": 3}, {"id": "REQ-1216", "team": "Operations", "type": "Recurring report", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-06-29", "waiting": 92, "target": 5}, {"id": "REQ-1192", "team": "Finance", "type": "Data pull", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-07-10", "waiting": 80, "target": 1}, {"id": "REQ-1058", "team": "Finance", "type": "Recurring report", "priority": "High", "owner": "Unassigned", "status": "Open", "submitted": "2026-07-24", "waiting": 66, "target": 1}, {"id": "REQ-1084", "team": "Operations", "type": "Ad hoc report", "priority": "Low", "owner": "Analyst C", "status": "Open", "submitted": "2026-07-31", "waiting": 60, "target": 5}, {"id": "REQ-1282", "team": "Operations", "type": "Dashboard change", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-08-05", "waiting": 55, "target": 1}, {"id": "REQ-1297", "team": "Sales", "type": "Dashboard change", "priority": "Low", "owner": "Analyst B", "status": "Open", "submitted": "2026-08-08", "waiting": 52, "target": 5}, {"id": "REQ-1025", "team": "Business Development", "type": "Data correction", "priority": "High", "owner": "Analyst A", "status": "Open", "submitted": "2026-08-15", "waiting": 45, "target": 1}, {"id": "REQ-1017", "team": "Sales", "type": "Data pull", "priority": "High", "owner": "Analyst B", "status": "Open", "submitted": "2026-08-31", "waiting": 28, "target": 1}, {"id": "REQ-1275", "team": "Compliance", "type": "Dashboard change", "priority": "High", "owner": "Analyst C", "status": "Open", "submitted": "2026-09-04", "waiting": 24, "target": 1}, {"id": "REQ-1262", "team": "Operations", "type": "Dashboard change", "priority": "Low", "owner": "Analyst B", "status": "Open", "submitted": "2026-09-07", "waiting": 21, "target": 5}, {"id": "REQ-1219", "team": "Compliance", "type": "Data correction", "priority": "Medium", "owner": "Unassigned", "status": "In Progress", "submitted": "2026-09-25", "waiting": 4, "target": 3}, {"id": "REQ-1015", "team": "Finance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-25", "waiting": 3, "target": 3}, {"id": "REQ-1212", "team": "Compliance", "type": "Ad hoc report", "priority": "Medium", "owner": "Analyst B", "status": "In Progress", "submitted": "2026-09-26", "waiting": 3, "target": 3}, {"id": "REQ-1010", "team": "Sales", "type": "Data pull", "priority": "Low", "owner": "Analyst A", "status": "Open", "submitted": "2026-09-26", "waiting": 2, "target": 5}, {"id": "REQ-1024", "team": "Operations", "type": "Data pull", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-27", "waiting": 2, "target": 3}, {"id": "REQ-1280", "team": "Sales", "type": "Recurring report", "priority": "Medium", "owner": "Analyst C", "status": "In Progress", "submitted": "2026-09-26", "waiting": 2, "target": 3}], "as_of": "Sep 29, 2026"};
 
 const num = n => n.toLocaleString("en-US");
 const days = n => n.toFixed(1) + " days";
@@ -248,7 +261,7 @@ $("kpis").innerHTML = [
   ["Requests", num(k.total), num(k.duplicates) + " duplicates removed"],
   ["Average turnaround", days(k.avg_days), "median " + days(k.median_days)],
   ["Missed their target", k.missed_pct + "%", num(k.missed) + " of " + num(k.completed) + " finished"],
-  ["Still open", num(k.open), num(k.open_unassigned) + " with no owner"],
+  ["Still open", num(k.open), num(k.never_started) + " never started · " + num(k.open_unassigned) + " no owner"],
 ].map(([l, v, s]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join("");
 
 // ---------- column chart helper ----------
@@ -294,7 +307,7 @@ columns($("prioCols"), $("prioNames"), DATA.by_priority.map(p => ({label: p.prio
   tip: r => `<b>${r.label} priority</b>Average ${days(r.value)} &middot; target ${r.target} day${r.target > 1 ? "s" : ""}<br>${r.missed} of ${r.done} were late (${Math.round(100 * r.missed / r.done)}%)`,
 });
 const high = DATA.by_priority.find(p => p.priority === "High");
-$("prioNote").innerHTML = `Priority works on average &mdash; but <b>${high.missed} of ${high.completed} High-priority requests (${Math.round(100 * high.missed / high.completed)}%) still missed their 1-day target.</b> The average alone hides that.`;
+$("prioNote").innerHTML = `High priority is the fastest on average &mdash; but <b>${high.missed} of ${high.completed} High-priority requests (${Math.round(100 * high.missed / high.completed)}%) still missed their 1-day target</b>, the worst of the three. The average alone hides that.`;
 
 const scrollToList = () => $("openList").scrollIntoView({behavior: "smooth"});
 bars($("teamBars"), DATA.by_team.map(t => ({label: t.team, value: t.requests, open: t.open})), {
@@ -314,20 +327,40 @@ bars($("ownerBars"), DATA.by_owner.map(o => ({label: o.owner, value: o.open, old
   tip: r => `<b>${r.label}</b>${r.value} open requests &middot; oldest waiting ${r.oldest} days`,
   onClick: r => setView({owner: r.label}),
 });
-$("ownerNote").innerHTML = `<b>${num(k.open_unassigned)} open requests have no owner.</b> Nobody is working on them &mdash; these are the ones that get forgotten.`;
+$("ownerNote").innerHTML = `<b>${num(k.open_unassigned)} open requests have no owner</b>, and ${num(k.never_started)} were never started. These are the ones that get forgotten.`;
+
+// ---------- on time ----------
+function pctBars(el, rows) {
+  el.innerHTML = rows.map(r => `<div class="row"><div class="name" title="${r.name}">${r.name}</div>
+    <div class="track"><div class="bar" style="width:${r.pct}%"></div></div><div class="val">${Math.round(r.pct)}%</div></div>`).join("");
+  el.querySelectorAll(".row").forEach((row, i) => {
+    const r = rows[i];
+    hover(row, `<b>${r.name}</b>${Math.round(r.pct)}% on time &middot; ${r.completed} finished requests`);
+  });
+}
+pctBars($("analystOnTime"), DATA.on_time_analyst);
+pctBars($("teamOnTime"), DATA.on_time_team);
+const worst = DATA.on_time_analyst[0], others = DATA.on_time_analyst.slice(1);
+$("onTimeNote").innerHTML = `<b>${worst.name} is on time ${Math.round(worst.pct)}% of the time</b>, vs. ${others.map(o => Math.round(o.pct) + "%").join(" and ")} for the others. That usually means too much work, not a bad analyst &mdash; worth a workload check.`;
 
 // ---------- next steps ----------
 const busiest = DATA.by_team.slice(0, 2).map(t => t.team).join(" and ");
 $("nextSteps").innerHTML = [
   `<b>Give the ${num(k.open_unassigned)} unassigned requests an owner today.</b>`,
-  `<b>Look at why High-priority requests miss the 1-day target</b> &mdash; ${Math.round(100 * high.missed / high.completed)}% ran late.`,
-  `<b>Check in on the oldest open requests first</b> (sort the list by "Waiting").`,
-  `<b>${busiest} send the most work</b> &mdash; a standard template for their most common request could save time.`,
+  `<b>Start the ${num(k.never_started)} requests nobody has touched</b> &mdash; the oldest has waited ${DATA.open[0].waiting} days. Sort the list by "Waiting".`,
+  `<b>Check ${worst.name}'s workload.</b> On time ${Math.round(worst.pct)}% vs. about ${Math.round(others.reduce((a, o) => a + o.pct, 0) / others.length)}% for the others &mdash; moving a few requests could fix it.`,
+  `<b>Look at why High priority misses most often</b> &mdash; ${Math.round(100 * high.missed / high.completed)}% ran past the 1-day target.`,
 ].map(s => `<li>${s}</li>`).join("");
 
 
 // ---------- "start here" questions ----------
 function setView(v) {
+  if (v.card) {
+    const c = $(v.card);
+    c.scrollIntoView({behavior: "smooth", block: "start"});
+    c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
+    return;
+  }
   $("q").value = v.q || ""; $("fTeam").value = v.team || ""; $("fPriority").value = v.priority || ""; $("fOwner").value = v.owner || "";
   sortKey = "waiting"; sortDir = -1;
   render();
@@ -338,17 +371,17 @@ function setView(v) {
 const topTeam = DATA.by_team[0].team;
 const highOpen = DATA.open.filter(d => d.priority === "High").length;
 const QUESTIONS = [
-  {t: "What's been waiting the longest?", d: "Every open request, oldest on top.", v: {}},
+  {t: "What's been waiting the longest?", d: `${num(k.never_started)} requests were never started.`, v: {}},
   {t: "Which requests have no owner?", d: `${num(k.open_unassigned)} requests nobody is working on.`, v: {owner: "Unassigned"}},
   {t: "Which urgent requests are still open?", d: `${num(highOpen)} High-priority requests not finished.`, v: {priority: "High"}},
-  {t: `What is ${topTeam} waiting on?`, d: "The team that sends the most work.", v: {team: topTeam}},
+  {t: "Who's falling behind?", d: "On-time % by analyst and by team.", v: {card: "onTimeCard"}},
 ];
 $("questions").innerHTML = QUESTIONS.map((q, i) =>
   `<button class="qbtn" type="button" data-i="${i}"><b>${q.t}</b><span>${q.d}</span> <span class="go">Show me &rarr;</span></button>`).join("");
 document.querySelectorAll(".qbtn").forEach(b => b.onclick = () => setView(QUESTIONS[b.dataset.i].v));
 
 // ---------- open requests table ----------
-$("asOf").textContent = `Everything not finished as of ${DATA.as_of} (the end of the sample data), longest waiting first.`;
+$("asOf").textContent = `Everything not finished as of ${DATA.as_of} (the day this export was pulled), longest waiting first.`;
 const COLS = [
   {key: "id", label: "Request"},
   {key: "team", label: "Team"},

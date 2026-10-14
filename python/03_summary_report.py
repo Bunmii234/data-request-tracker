@@ -23,13 +23,30 @@ by_team = by_team.sort_values("count", ascending=False)
 monthly = df.pivot_table(index="month", columns="team", values="request_id", aggfunc="count", fill_value=0)
 # NOTE: pivot_table = an actual PivotTable - months down the side, teams across the top, count of requests inside.
 
+TARGETS = {"High": 1, "Medium": 3, "Low": 5}
+done = done.copy()
+done["target_days"] = done["priority"].map(TARGETS)
+done["on_time"] = done["turnaround_days"] <= done["target_days"]
+by_analyst = (done.groupby("assigned_to")["on_time"].agg(["count", "mean"])
+              .rename(columns={"count": "completed", "mean": "on_time_pct"}))
+by_analyst["on_time_pct"] = (by_analyst["on_time_pct"] * 100).round(1)
+team_on_time = (done.groupby("team")["on_time"].agg(["count", "mean"])
+                .rename(columns={"count": "completed", "mean": "on_time_pct"}))
+team_on_time["on_time_pct"] = (team_on_time["on_time_pct"] * 100).round(1)
+# NOTE: Same idea as SQL Q7 and Q8, but in pandas:
+#       .map(TARGETS) looks up each request's target, on_time = True if it finished within it.
+#       The mean of True/False = the share that's True (True counts as 1), so x100 = on-time %.
+
 with pd.ExcelWriter("output/request_summary.xlsx") as xl:
     kpis.to_excel(xl, sheet_name="KPIs", index=False)
     by_team.to_excel(xl, sheet_name="By team")
     monthly.to_excel(xl, sheet_name="Monthly volume")
-# NOTE: Wrote the 3 tables into one Excel file, one sheet each.
+    by_analyst.sort_values("on_time_pct").to_excel(xl, sheet_name="On time by analyst")
+    team_on_time.sort_values("on_time_pct").to_excel(xl, sheet_name="On time by team")
+# NOTE: Wrote the 5 tables into one Excel file, one sheet each.
 
 print(kpis.to_string(index=False))
+print(); print(by_analyst)
 print()
 print(by_team)
 print("\nSaved output/request_summary.xlsx")

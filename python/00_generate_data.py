@@ -16,8 +16,10 @@ TEAMS = ["Operations", "Finance", "Sales", "Business Development", "Compliance"]
 TYPES = ["Ad hoc report", "Dashboard change", "Data pull", "Data correction", "Recurring report"]
 ANALYSTS = ["Analyst A", "Analyst B", "Analyst C"]
 START = datetime(2026, 6, 1, 8, 0)
+AS_OF = START + timedelta(days=120)
 # NOTE: The lists to pick from - 5 teams that send requests, 5 types of requests, 3 analysts.
 #       START = June 1, 2026 at 8:00 AM, the first day of the log.
+#       AS_OF = 120 days later (Sep 29) - the day I "pulled" this export. Anything not done by then is still open.
 
 rows = []
 for i in range(300):
@@ -28,11 +30,10 @@ for i in range(300):
     request_type = random.choice(TYPES)
     priority = random.choices(["High", "Medium", "Low"], weights=[20, 50, 30])[0]
     analyst = random.choice(ANALYSTS)
-    status = random.choices(["Completed", "In Progress", "Open"], weights=[70, 15, 15])[0]
     # NOTE: Picked the details for this request:
     #       submitted = a random hour in the 120 days after June 1.
     #       team = Operations sends the most (30%), Compliance the least (10%).
-    #       priority = 20% High, 50% Medium, 30% Low. Status = 70% done, the rest still open.
+    #       priority = 20% High, 50% Medium, 30% Low.
 
     if priority == "High":
         hours = random.uniform(2, 36)
@@ -40,13 +41,26 @@ for i in range(300):
         hours = random.uniform(8, 96)
     else:
         hours = random.uniform(12, 150)
-    # NOTE: How long it took (in hours) depends on priority - High gets done fastest, Low slowest.
+    if analyst == "Analyst B":
+        hours = hours * 1.4
+    # NOTE: How long it takes (in hours) depends on priority - High gets done fastest, Low slowest.
+    #       Analyst B takes 40% longer - so the "on-time by analyst" check has something real to find
+    #       (like someone who is overloaded).
 
-    if status == "Completed":
-        completed = (submitted + timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
-    else:
+    finished = submitted + timedelta(hours=hours)
+    if finished > AS_OF:
+        status = "In Progress"
         completed = ""
-    # NOTE: Only finished requests get a finish time. Open ones stay blank.
+    elif random.random() < 0.05:
+        status = "Open"
+        completed = ""
+    else:
+        status = "Completed"
+        completed = finished.strftime("%Y-%m-%d %H:%M")
+    # NOTE: The status now makes sense with the dates:
+    #       - if it would finish AFTER the export date, it's still "In Progress" (it came in recently)
+    #       - 5% get "Open" - forgotten requests nobody started (these are the old ones to chase)
+    #       - everything else is "Completed" with its finish time
 
     rows.append({
         "request_id": "REQ-" + str(1000 + i),
@@ -68,12 +82,14 @@ for row in random.sample(range(300), 3):
     df.loc[row, "team"] = df.loc[row, "team"].upper()
 for row in random.sample(range(300), 3):
     df.loc[row, "team"] = " " + df.loc[row, "team"].lower() + " "
-for row in random.sample(range(300), 4):
+not_done = list(df[df["status"] != "Completed"].index)
+for row in random.sample(not_done, 4):
     df.loc[row, "assigned_to"] = ""
 df = pd.concat([df, df.sample(5, random_state=1)], ignore_index=True)
 # NOTE: Made it messy on purpose, like a real export:
 #       3 team names in ALL CAPS, 3 in lowercase with extra spaces ("finance " instead of "Finance"),
-#       4 requests with no analyst assigned, and 5 rows copied again at the bottom (duplicates).
+#       4 unfinished requests with no analyst assigned (a finished one would always have someone),
+#       and 5 rows copied again at the bottom (duplicates).
 
 df.to_csv("data/requests_raw.csv", index=False)
 print("wrote data/requests_raw.csv with", len(df), "rows")

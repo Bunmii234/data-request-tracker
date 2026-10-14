@@ -37,6 +37,7 @@
   .kpi .value { font-size: 28px; font-weight: 650; margin: 2px 0; font-variant-numeric: tabular-nums; }
   .kpi .sub { font-size: 13px; color: var(--muted); }
   .grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; }
+  .grid2 > * { min-width: 0; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
   .card h2 { font-size: 17px; margin: 0 0 2px; }
   .card .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
@@ -104,6 +105,8 @@
     .glossary { grid-template-columns: 1fr; }
   }
   @media (max-width: 480px) {
+    .cols, .colnames { gap: 3px; }
+    .colnames div { font-size: 10px; min-width: 0; }
     header h1 { font-size: 23px; }
     .kpi .value { font-size: 23px; }
     .bars .row { grid-template-columns: 110px 1fr 70px; gap: 6px; }
@@ -165,17 +168,27 @@
   </div>
 
   <div class="grid2">
-    <div class="card">
-      <h2>Requests per month</h2>
-      <p class="hint">New requests coming in each month.</p>
-      <div class="cols" id="monthCols"></div>
-      <div class="colnames" id="monthNames"></div>
+    <div class="card" id="onTimeCard">
+      <h2>Who's falling behind?</h2>
+      <p class="hint">Share of finished requests done within their target, by analyst and by team. Worst first.</p>
+      <div class="bars static" id="analystOnTime"></div>
+      <div class="callout" id="onTimeNote"></div>
+      <h2 style="margin-top:18px">On time by team</h2>
+      <div class="bars static" id="teamOnTime"></div>
     </div>
-    <div class="card">
-      <h2>Who has open work right now <span class="clickme">click an analyst</span></h2>
-      <p class="hint">Requests not finished yet, by analyst. Click one to filter the list below.</p>
-      <div class="bars" id="ownerBars"></div>
-      <div class="callout" id="ownerNote"></div>
+    <div>
+      <div class="card">
+        <h2>Who has open work right now <span class="clickme">click an analyst</span></h2>
+        <p class="hint">Requests not finished yet, by analyst. Click one to filter the list below.</p>
+        <div class="bars" id="ownerBars"></div>
+        <div class="callout" id="ownerNote"></div>
+      </div>
+      <div class="card">
+        <h2>Requests per month</h2>
+        <p class="hint">New requests coming in each month.</p>
+        <div class="cols" id="monthCols"></div>
+        <div class="colnames" id="monthNames"></div>
+      </div>
     </div>
   </div>
 
@@ -205,7 +218,7 @@
   </div>
 
   <footer>
-    How it was built: Python (pandas) cleans the request log &rarr; SQL answers 6 KPI questions &rarr; Python builds the Excel summary and this page.
+    How it was built: Python (pandas) cleans the request log &rarr; SQL answers 8 KPI questions &rarr; Python builds the Excel summary and this page.
     Full code and notes: <a href="https://github.com/Bunmii234/data-request-tracker">github.com/Bunmii234/data-request-tracker</a>
     &middot; Excel summary: <a href="https://github.com/Bunmii234/data-request-tracker/raw/main/output/request_summary.xlsx">download</a>
   </footer>
@@ -248,7 +261,7 @@ $("kpis").innerHTML = [
   ["Requests", num(k.total), num(k.duplicates) + " duplicates removed"],
   ["Average turnaround", days(k.avg_days), "median " + days(k.median_days)],
   ["Missed their target", k.missed_pct + "%", num(k.missed) + " of " + num(k.completed) + " finished"],
-  ["Still open", num(k.open), num(k.open_unassigned) + " with no owner"],
+  ["Still open", num(k.open), num(k.never_started) + " never started · " + num(k.open_unassigned) + " no owner"],
 ].map(([l, v, s]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join("");
 
 // ---------- column chart helper ----------
@@ -294,7 +307,7 @@ columns($("prioCols"), $("prioNames"), DATA.by_priority.map(p => ({label: p.prio
   tip: r => `<b>${r.label} priority</b>Average ${days(r.value)} &middot; target ${r.target} day${r.target > 1 ? "s" : ""}<br>${r.missed} of ${r.done} were late (${Math.round(100 * r.missed / r.done)}%)`,
 });
 const high = DATA.by_priority.find(p => p.priority === "High");
-$("prioNote").innerHTML = `Priority works on average &mdash; but <b>${high.missed} of ${high.completed} High-priority requests (${Math.round(100 * high.missed / high.completed)}%) still missed their 1-day target.</b> The average alone hides that.`;
+$("prioNote").innerHTML = `High priority is the fastest on average &mdash; but <b>${high.missed} of ${high.completed} High-priority requests (${Math.round(100 * high.missed / high.completed)}%) still missed their 1-day target</b>, the worst of the three. The average alone hides that.`;
 
 const scrollToList = () => $("openList").scrollIntoView({behavior: "smooth"});
 bars($("teamBars"), DATA.by_team.map(t => ({label: t.team, value: t.requests, open: t.open})), {
@@ -314,20 +327,40 @@ bars($("ownerBars"), DATA.by_owner.map(o => ({label: o.owner, value: o.open, old
   tip: r => `<b>${r.label}</b>${r.value} open requests &middot; oldest waiting ${r.oldest} days`,
   onClick: r => setView({owner: r.label}),
 });
-$("ownerNote").innerHTML = `<b>${num(k.open_unassigned)} open requests have no owner.</b> Nobody is working on them &mdash; these are the ones that get forgotten.`;
+$("ownerNote").innerHTML = `<b>${num(k.open_unassigned)} open requests have no owner</b>, and ${num(k.never_started)} were never started. These are the ones that get forgotten.`;
+
+// ---------- on time ----------
+function pctBars(el, rows) {
+  el.innerHTML = rows.map(r => `<div class="row"><div class="name" title="${r.name}">${r.name}</div>
+    <div class="track"><div class="bar" style="width:${r.pct}%"></div></div><div class="val">${Math.round(r.pct)}%</div></div>`).join("");
+  el.querySelectorAll(".row").forEach((row, i) => {
+    const r = rows[i];
+    hover(row, `<b>${r.name}</b>${Math.round(r.pct)}% on time &middot; ${r.completed} finished requests`);
+  });
+}
+pctBars($("analystOnTime"), DATA.on_time_analyst);
+pctBars($("teamOnTime"), DATA.on_time_team);
+const worst = DATA.on_time_analyst[0], others = DATA.on_time_analyst.slice(1);
+$("onTimeNote").innerHTML = `<b>${worst.name} is on time ${Math.round(worst.pct)}% of the time</b>, vs. ${others.map(o => Math.round(o.pct) + "%").join(" and ")} for the others. That usually means too much work, not a bad analyst &mdash; worth a workload check.`;
 
 // ---------- next steps ----------
 const busiest = DATA.by_team.slice(0, 2).map(t => t.team).join(" and ");
 $("nextSteps").innerHTML = [
   `<b>Give the ${num(k.open_unassigned)} unassigned requests an owner today.</b>`,
-  `<b>Look at why High-priority requests miss the 1-day target</b> &mdash; ${Math.round(100 * high.missed / high.completed)}% ran late.`,
-  `<b>Check in on the oldest open requests first</b> (sort the list by "Waiting").`,
-  `<b>${busiest} send the most work</b> &mdash; a standard template for their most common request could save time.`,
+  `<b>Start the ${num(k.never_started)} requests nobody has touched</b> &mdash; the oldest has waited ${DATA.open[0].waiting} days. Sort the list by "Waiting".`,
+  `<b>Check ${worst.name}'s workload.</b> On time ${Math.round(worst.pct)}% vs. about ${Math.round(others.reduce((a, o) => a + o.pct, 0) / others.length)}% for the others &mdash; moving a few requests could fix it.`,
+  `<b>Look at why High priority misses most often</b> &mdash; ${Math.round(100 * high.missed / high.completed)}% ran past the 1-day target.`,
 ].map(s => `<li>${s}</li>`).join("");
 
 
 // ---------- "start here" questions ----------
 function setView(v) {
+  if (v.card) {
+    const c = $(v.card);
+    c.scrollIntoView({behavior: "smooth", block: "start"});
+    c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
+    return;
+  }
   $("q").value = v.q || ""; $("fTeam").value = v.team || ""; $("fPriority").value = v.priority || ""; $("fOwner").value = v.owner || "";
   sortKey = "waiting"; sortDir = -1;
   render();
@@ -338,17 +371,17 @@ function setView(v) {
 const topTeam = DATA.by_team[0].team;
 const highOpen = DATA.open.filter(d => d.priority === "High").length;
 const QUESTIONS = [
-  {t: "What's been waiting the longest?", d: "Every open request, oldest on top.", v: {}},
+  {t: "What's been waiting the longest?", d: `${num(k.never_started)} requests were never started.`, v: {}},
   {t: "Which requests have no owner?", d: `${num(k.open_unassigned)} requests nobody is working on.`, v: {owner: "Unassigned"}},
   {t: "Which urgent requests are still open?", d: `${num(highOpen)} High-priority requests not finished.`, v: {priority: "High"}},
-  {t: `What is ${topTeam} waiting on?`, d: "The team that sends the most work.", v: {team: topTeam}},
+  {t: "Who's falling behind?", d: "On-time % by analyst and by team.", v: {card: "onTimeCard"}},
 ];
 $("questions").innerHTML = QUESTIONS.map((q, i) =>
   `<button class="qbtn" type="button" data-i="${i}"><b>${q.t}</b><span>${q.d}</span> <span class="go">Show me &rarr;</span></button>`).join("");
 document.querySelectorAll(".qbtn").forEach(b => b.onclick = () => setView(QUESTIONS[b.dataset.i].v));
 
 // ---------- open requests table ----------
-$("asOf").textContent = `Everything not finished as of ${DATA.as_of} (the end of the sample data), longest waiting first.`;
+$("asOf").textContent = `Everything not finished as of ${DATA.as_of} (the day this export was pulled), longest waiting first.`;
 const COLS = [
   {key: "id", label: "Request"},
   {key: "team", label: "Team"},
