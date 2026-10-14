@@ -6,6 +6,18 @@ On a reporting team, people send data requests all day - through email, Teams, i
 
 This project is the analysis side of a request tracker: clean the request log, put it in a SQL database, and answer the questions a manager would ask. Everything here is **fake data I generated** - no real work data.
 
+## Live dashboard
+
+**[Open the dashboard](https://bunmii234.github.io/data-request-tracker/)** - one page with the results, charts, and a searchable list. No code or downloads needed.
+
+## Results at a glance
+
+![Average turnaround vs. target](images/turnaround_vs_target.png)
+
+![Requests by team](images/requests_by_team.png)
+
+The full summary is `output/request_summary.xlsx` (GitHub can't preview Excel - click it, then **Download**). The clean data is [`output/requests_clean.csv`](output/requests_clean.csv) - GitHub shows it as a table.
+
 ## The data
 
 `data/requests_raw.csv` - **305 rows**, one per request: who asked, what type, priority, who it's assigned to, status, and when it started and finished.
@@ -16,7 +28,7 @@ It's messy on purpose, like a real export:
 - 4 requests with no owner
 - dates saved as text
 
-## What I did - 4 steps
+## What I did - 6 steps
 
 | Step | File | Tool | What it does |
 |---|---|---|---|
@@ -24,6 +36,8 @@ It's messy on purpose, like a real export:
 | 1 | `python/01_clean_data.py` | pandas | removes duplicates, fixes team names, turns text into dates, marks blank owners as "Unassigned", calculates turnaround time |
 | 2 | `python/02_load_to_sql.py` + `sql/` | SQL | loads the clean data into a database and runs 6 KPI queries |
 | 3 | `python/03_summary_report.py` | pandas -> Excel | builds a 3-sheet Excel summary: KPIs, by team, monthly volume |
+| 4 | `python/04_make_charts.py` | matplotlib | saves the charts as pictures for this page |
+| 5 | `python/05_build_dashboard.py` + `dashboard/` | Python + HTML | builds the live team dashboard page (`docs/index.html`) |
 
 ## The 6 questions (`sql/kpi_queries.sql`)
 
@@ -59,6 +73,8 @@ python python/00_generate_data.py
 python python/01_clean_data.py
 python python/02_load_to_sql.py
 python python/03_summary_report.py
+python python/04_make_charts.py
+python python/05_build_dashboard.py
 ```
 
 ## What I learned

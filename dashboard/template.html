@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Request Tracker</title>
+<meta name="description" content="Team dashboard: 300 data requests - turnaround, missed targets, and open work (sample data).">
+<style>
+  :root {
+    --bg: #f4f4f1; --card: #ffffff; --ink: #0b0b0b; --ink2: #52514e; --muted: #7d7c77;
+    --line: #e2e1dc; --track: #efeee9; --blue: #2a78d6; --blue-ink: #1b5fb0; --blue-soft: #e9f1fb;
+    --warn-soft: #fff4dc; --warn-ink: #7a5300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111110; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #929189;
+      --line: #2f2f2c; --track: #262624; --blue: #3987e5; --blue-ink: #8dbcf3; --blue-soft: #1c2938;
+      --warn-soft: #33290f; --warn-ink: #f1c76b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111110; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #929189;
+    --line: #2f2f2c; --track: #262624; --blue: #3987e5; --blue-ink: #8dbcf3; --blue-soft: #1c2938;
+    --warn-soft: #33290f; --warn-ink: #f1c76b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 16px 48px; }
+  header h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header p.lead { font-size: 17px; color: var(--ink2); margin: 0 0 10px; max-width: 760px; }
+  .tag { display: inline-block; font-size: 12px; color: var(--ink2); border: 1px solid var(--line);
+         border-radius: 999px; padding: 2px 10px; background: var(--card); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .kpi .label { font-size: 13px; color: var(--ink2); }
+  .kpi .value { font-size: 28px; font-weight: 650; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .kpi .sub { font-size: 13px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .card h2 { font-size: 17px; margin: 0 0 2px; }
+  .card .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+  .bars .row { display: grid; grid-template-columns: 170px 1fr 84px; align-items: center; gap: 10px;
+               padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+  .bars .row:hover, .bars .row:focus-visible, .bars .row.active { background: var(--blue-soft); outline: none; }
+  .bars .name { font-size: 13px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bars .track { height: 16px; background: transparent; }
+  .bars .bar { height: 16px; background: var(--blue); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bars .val { font-size: 13px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+  .bars.static .row { cursor: default; }
+  .glossary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px; margin: 0; padding: 0; list-style: none; }
+  .glossary li { font-size: 14px; color: var(--ink2); }
+  .glossary b { color: var(--ink); display: block; font-size: 14px; }
+  .callout { background: var(--warn-soft); color: var(--warn-ink); border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 14px; }
+  .steps { margin: 0; padding-left: 20px; color: var(--ink2); font-size: 14px; }
+  .steps li { margin-bottom: 6px; }
+  .steps b { color: var(--ink); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+  .controls input, .controls select, .controls button {
+    font: inherit; font-size: 14px; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+  .controls input { flex: 1 1 200px; min-width: 0; }
+  .controls button { cursor: pointer; }
+  .count { font-size: 13px; color: var(--muted); margin-left: auto; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 520px; overflow-y: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--card); color: var(--ink2); font-weight: 600; cursor: pointer; user-select: none; }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th .arrow { color: var(--muted); font-size: 11px; }
+  tbody tr:hover { background: var(--blue-soft); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); color: var(--ink2); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+  footer a, .card a { color: var(--blue-ink); }
+  .tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--card); font-size: 13px;
+         padding: 8px 10px; border-radius: 8px; max-width: 260px; opacity: 0; transition: opacity .1s; z-index: 10; }
+  .tip b { display: block; }
+  .theme-btn { float: right; font: inherit; font-size: 13px; background: var(--card); color: var(--ink2);
+               border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  @media (max-width: 820px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+    .glossary { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    header h1 { font-size: 23px; }
+    .kpi .value { font-size: 23px; }
+    .bars .row { grid-template-columns: 110px 1fr 70px; gap: 6px; }
+  }
+</style>
+<style>
+  .cols { display: flex; align-items: flex-end; gap: 18px; height: 220px; padding: 22px 6px 0; border-bottom: 1px solid var(--line); }
+  .col { flex: 1; height: 100%; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: default; }
+  .col .colbar { width: 62%; max-width: 70px; background: var(--blue); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .col .target { position: absolute; left: 12%; right: 12%; height: 0; border-top: 2px solid var(--ink); }
+  .col .top { font-size: 13px; color: var(--ink); margin-bottom: 4px; font-variant-numeric: tabular-nums; text-align: center; }
+  .col:hover .colbar, .col:focus-visible .colbar { filter: brightness(1.12); }
+  .col:focus-visible { outline: none; }
+  .colnames { display: flex; gap: 18px; padding: 6px 6px 0; }
+  .colnames div { flex: 1; text-align: center; font-size: 13px; color: var(--ink2); }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink2); margin: -6px 0 6px; }
+  .legend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .legend .sw-bar { width: 12px; height: 12px; background: var(--blue); border-radius: 3px; }
+  .legend .sw-line { width: 16px; border-top: 2px solid var(--ink); }
+  .mini { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .mini td { padding: 7px 4px; border-bottom: 1px solid var(--line); white-space: normal; }
+  .mini td.num { text-align: right; color: var(--ink2); }
+  .late { color: var(--warn-ink); background: var(--warn-soft); border-color: transparent; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="theme-btn" id="themeBtn" type="button">Dark / light</button>
+    <span class="tag">Sample project &middot; generated data, no real company data</span>
+    <h1>Data Request Tracker</h1>
+    <p class="lead">How fast does the reporting team finish the data requests people send in, who sends the most, and what's still waiting? 300 requests from June to September 2026.</p>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Are urgent requests actually faster?</h2>
+      <p class="hint">Average days to finish, by priority. The black line is the target for that priority.</p>
+      <div class="legend"><span><i class="sw-bar"></i>Average days</span><span><i class="sw-line"></i>Target</span></div>
+      <div class="cols" id="prioCols"></div>
+      <div class="colnames" id="prioNames"></div>
+      <div class="callout" id="prioNote"></div>
+    </div>
+    <div class="card">
+      <h2>Who sends the most work</h2>
+      <p class="hint">Requests by team. Click a team to see its open requests below.</p>
+      <div class="bars" id="teamBars"></div>
+      <h2 style="margin-top:18px">What each team asks for most</h2>
+      <table class="mini" id="topTypes"></table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Requests per month</h2>
+      <p class="hint">New requests coming in each month.</p>
+      <div class="cols" id="monthCols"></div>
+      <div class="colnames" id="monthNames"></div>
+    </div>
+    <div class="card">
+      <h2>Who has open work right now</h2>
+      <p class="hint">Requests not finished yet, by analyst. Click one to filter the list below.</p>
+      <div class="bars" id="ownerBars"></div>
+      <div class="callout" id="ownerNote"></div>
+    </div>
+  </div>
+
+  <div class="card" id="openList">
+    <h2>Open requests</h2>
+    <p class="hint" id="asOf"></p>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search request # or type" aria-label="Search">
+      <select id="fTeam" aria-label="Team"></select>
+      <select id="fPriority" aria-label="Priority"></select>
+      <select id="fOwner" aria-label="Analyst"></select>
+      <button id="clear" type="button">Clear</button>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What to do next</h2>
+    <ol class="steps" id="nextSteps"></ol>
+  </div>
+
+  <footer>
+    How it was built: Python (pandas) cleans the request log &rarr; SQL answers 6 KPI questions &rarr; Python builds the Excel summary and this page.
+    Full code and notes: <a href="https://github.com/Bunmii234/data-request-tracker">github.com/Bunmii234/data-request-tracker</a>
+    &middot; Excel summary: <a href="https://github.com/Bunmii234/data-request-tracker/raw/main/output/request_summary.xlsx">download</a>
+  </footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const DATA = __DATA__;
+
+const num = n => n.toLocaleString("en-US");
+const days = n => n.toFixed(1) + " days";
+const $ = id => document.getElementById(id);
+
+$("themeBtn").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark"
+             : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+};
+
+const tip = $("tip");
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX || (r.left + r.width / 2), y = e.clientY || r.top;
+  tip.style.left = Math.min(x + 14, window.innerWidth - 270) + "px";
+  tip.style.top = (y + 14) + "px";
+}
+function hideTip() { tip.style.opacity = 0; }
+function hover(el, html) {
+  el.addEventListener("mousemove", e => showTip(e, html));
+  el.addEventListener("mouseleave", hideTip);
+  el.addEventListener("focus", e => showTip(e, html));
+  el.addEventListener("blur", hideTip);
+}
+
+// ---------- KPI tiles ----------
+const k = DATA.kpis;
+$("kpis").innerHTML = [
+  ["Requests", num(k.total), num(k.duplicates) + " duplicates removed"],
+  ["Average turnaround", days(k.avg_days), "median " + days(k.median_days)],
+  ["Missed their target", k.missed_pct + "%", num(k.missed) + " of " + num(k.completed) + " finished"],
+  ["Still open", num(k.open), num(k.open_unassigned) + " with no owner"],
+].map(([l, v, s]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join("");
+
+// ---------- column chart helper ----------
+function columns(colsEl, namesEl, rows, opts) {
+  const max = opts.max || Math.max(...rows.map(r => r.value));
+  colsEl.innerHTML = ""; namesEl.innerHTML = "";
+  rows.forEach(r => {
+    const col = document.createElement("div");
+    col.className = "col"; col.tabIndex = 0;
+    const top = opts.noTop ? "" : `<div class="top">${opts.fmt(r.value)}</div>`;
+    col.innerHTML = `${top}<div class="colbar" style="height:${(100 * r.value / max).toFixed(1)}%"></div>`;
+    if (r.target !== undefined) {
+      const t = document.createElement("div");
+      t.className = "target"; t.style.bottom = (100 * r.target / max) + "%";
+      col.appendChild(t);
+    }
+    hover(col, opts.tip(r));
+    colsEl.appendChild(col);
+    namesEl.insertAdjacentHTML("beforeend", `<div>${opts.name ? opts.name(r) : r.label}</div>`);
+  });
+}
+
+// ---------- bar chart helper ----------
+function bars(el, rows, opts) {
+  const max = Math.max(...rows.map(r => r.value));
+  el.innerHTML = "";
+  rows.forEach(r => {
+    const row = document.createElement("div");
+    row.className = "row"; row.tabIndex = 0;
+    row.innerHTML = `<div class="name" title="${r.label}">${r.label}</div>
+      <div class="track"><div class="bar" style="width:${(100 * r.value / max).toFixed(1)}%"></div></div>
+      <div class="val">${opts.fmt(r.value)}</div>`;
+    hover(row, opts.tip(r));
+    row.addEventListener("click", () => opts.onClick(r));
+    row.addEventListener("keydown", e => { if (e.key === "Enter") opts.onClick(r); });
+    el.appendChild(row);
+  });
+}
+
+columns($("prioCols"), $("prioNames"), DATA.by_priority.map(p => ({label: p.priority, value: p.avg_days, target: p.target, missed: p.missed, done: p.completed})), {
+  max: 6, fmt: days, noTop: true,
+  name: r => `<b style="color:var(--ink)">${r.label}</b><br>${days(r.value)} avg<br>target ${r.target} day${r.target > 1 ? "s" : ""}`,
+  tip: r => `<b>${r.label} priority</b>Average ${days(r.value)} &middot; target ${r.target} day${r.target > 1 ? "s" : ""}<br>${r.missed} of ${r.done} were late (${Math.round(100 * r.missed / r.done)}%)`,
+});
+const high = DATA.by_priority.find(p => p.priority === "High");
+$("prioNote").innerHTML = `Priority works on average &mdash; but <b>${high.missed} of ${high.completed} High-priority requests (${Math.round(100 * high.missed / high.completed)}%) still missed their 1-day target.</b> The average alone hides that.`;
+
+const scrollToList = () => $("openList").scrollIntoView({behavior: "smooth"});
+bars($("teamBars"), DATA.by_team.map(t => ({label: t.team, value: t.requests, open: t.open})), {
+  fmt: num,
+  tip: r => `<b>${r.label}</b>${r.value} requests &middot; ${r.open} still open`,
+  onClick: r => { $("fTeam").value = r.label; render(); scrollToList(); },
+});
+$("topTypes").innerHTML = DATA.top_types.map(t => `<tr><td>${t.team}</td><td>${t.type}</td><td class="num">${t.n} requests</td></tr>`).join("");
+
+columns($("monthCols"), $("monthNames"), DATA.by_month.map(m => ({label: m.label, value: m.requests})), {
+  fmt: num,
+  tip: r => `<b>${r.label}</b>${r.value} new requests`,
+});
+
+bars($("ownerBars"), DATA.by_owner.map(o => ({label: o.owner, value: o.open, oldest: o.oldest})), {
+  fmt: num,
+  tip: r => `<b>${r.label}</b>${r.value} open requests &middot; oldest waiting ${r.oldest} days`,
+  onClick: r => { $("fOwner").value = r.label; render(); scrollToList(); },
+});
+$("ownerNote").innerHTML = `<b>${num(k.open_unassigned)} open requests have no owner.</b> Nobody is working on them &mdash; these are the ones that get forgotten.`;
+
+// ---------- next steps ----------
+const busiest = DATA.by_team.slice(0, 2).map(t => t.team).join(" and ");
+$("nextSteps").innerHTML = [
+  `<b>Give the ${num(k.open_unassigned)} unassigned requests an owner today.</b>`,
+  `<b>Look at why High-priority requests miss the 1-day target</b> &mdash; ${Math.round(100 * high.missed / high.completed)}% ran late.`,
+  `<b>Check in on the oldest open requests first</b> (sort the list by "Waiting").`,
+  `<b>${busiest} send the most work</b> &mdash; a standard template for their most common request could save time.`,
+].map(s => `<li>${s}</li>`).join("");
+
+// ---------- open requests table ----------
+$("asOf").textContent = `Everything not finished as of ${DATA.as_of} (the end of the sample data), longest waiting first.`;
+const COLS = [
+  {key: "id", label: "Request"},
+  {key: "team", label: "Team"},
+  {key: "type", label: "Type"},
+  {key: "priority", label: "Priority"},
+  {key: "owner", label: "Analyst"},
+  {key: "status", label: "Status"},
+  {key: "submitted", label: "Submitted"},
+  {key: "waiting", label: "Waiting", num: true},
+];
+let sortKey = "waiting", sortDir = -1;
+const opts = (key, all) => `<option value="">${all}</option>` +
+  [...new Set(DATA.open.map(d => d[key]))].sort().map(v => `<option>${v}</option>`).join("");
+$("fTeam").innerHTML = opts("team", "All teams");
+$("fPriority").innerHTML = opts("priority", "All priorities");
+$("fOwner").innerHTML = opts("owner", "All analysts");
+
+function cell(d, c) {
+  if (c.key === "waiting") {
+    const late = d.waiting > d.target;
+    return `<span class="pill ${late ? "late" : ""}">${d.waiting} days${late ? " · over target" : ""}</span>`;
+  }
+  return d[c.key];
+}
+function render() {
+  const q = $("q").value.trim().toLowerCase();
+  const ft = $("fTeam").value, fp = $("fPriority").value, fo = $("fOwner").value;
+  let rows = DATA.open.filter(d =>
+    (!q || d.id.toLowerCase().includes(q) || d.type.toLowerCase().includes(q)) &&
+    (!ft || d.team === ft) && (!fp || d.priority === fp) && (!fo || d.owner === fo));
+  rows.sort((a, b) => (a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0) * sortDir);
+  $("head").innerHTML = COLS.map(c =>
+    `<th class="${c.num ? "num" : ""}" data-key="${c.key}">${c.label} <span class="arrow">${c.key === sortKey ? (sortDir < 0 ? "▼" : "▲") : ""}</span></th>`).join("");
+  $("body").innerHTML = rows.map(d => "<tr>" + COLS.map(c =>
+    `<td class="${c.num ? "num" : ""}">${cell(d, c)}</td>`).join("") + "</tr>").join("");
+  const over = rows.filter(d => d.waiting > d.target).length;
+  $("count").textContent = `${num(rows.length)} open · ${num(over)} over target`;
+  document.querySelectorAll("#teamBars .row").forEach(r => r.classList.toggle("active", r.querySelector(".name").textContent === ft));
+  document.querySelectorAll("#ownerBars .row").forEach(r => r.classList.toggle("active", r.querySelector(".name").textContent === fo));
+  document.querySelectorAll("#head th").forEach(th => th.onclick = () => {
+    const key = th.dataset.key;
+    sortDir = key === sortKey ? -sortDir : (COLS.find(c => c.key === key).num ? -1 : 1);
+    sortKey = key; render();
+  });
+}
+["q", "fTeam", "fPriority", "fOwner"].forEach(id => $(id).addEventListener("input", render));
+$("clear").onclick = () => { ["q", "fTeam", "fPriority", "fOwner"].forEach(id => $(id).value = ""); render(); };
+render();
+</script>
+</body>
+</html>
